@@ -28,8 +28,17 @@ char *my_strstr(char *str, char *sub) {
 }
 
 int main() {
-  char *string = {"Hello, world!"};
-  char *substring = {"world"};
-  printf("%s\n", my_strstr(string, substring));
+  char string[100];
+  char substring[100];
+  printf("Input str: \n");
+  scanf("%99s", string);
+  printf("Input sub: \n");
+  scanf("%99s", substring);
+  char *result = my_strstr(string, substring);
+  if (result != NULL) {
+    printf("Found.: %s\n", result);
+  } else {
+    printf("Not found.\n");
+  }
   return 0;
 }
