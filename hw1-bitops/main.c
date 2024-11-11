@@ -35,6 +35,7 @@ int main() {
   }
   printf("\n");
   value3 = value3 & 0xFF00FFFF;
+  insert_value = insert_value & 0x000000FF;
   value3 = value3 | (insert_value << 16);
   printf("Число после вставки:\n");
   for (int i = sizeof(int) * 8 - 1; i >= 0; i--) {
