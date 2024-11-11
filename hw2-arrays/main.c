@@ -1,8 +1,11 @@
 #include <stdio.h>
+#define n 5
+#define n2 5
+#define n3 5
+#define n4 5
 
 int main() {
   // 1
-  int n = 3;
   int array[n][n], x = 1;
   for (int i = 0; i < n; i++) {
     for (int j = 0; j < n; j++) {
@@ -13,15 +16,22 @@ int main() {
     printf("\n");
   }
   // 2
-  int n2 = 5;
-  int array2[n2];
-  for (int i = n2 - 1; i >= 0; i--) {
-    array2[i] = i + 1;
+  int array2[n2] = {1, 2, 3, 4, 5};
+  int i = 0, j = n2 - 1, temp;
+  while (i < j) {
+    temp = array2[j];
+    array2[j] = array2[i];
+    array2[i] = temp;
+    i++;
+    j--;
+    printf("i=%d, val=%d, j=%d, val=%d.\n", i, array2[i], j, array2[j]);
+  }
+
+  for (int i = 0; i < n2; i++) {
     printf("%d ", array2[i]);
   }
   printf("\n");
   // 3
-  int n3 = 5;
   int array3[n3][n3];
   for (int i = 0; i < n3; i++) {
     for (int j = 0; j < n3; j++) {
@@ -34,7 +44,6 @@ int main() {
     printf("\n");
   }
   // 4
-  int n4 = 5;
   int array4[n4][n4];
   int x4 = 1;
   int top = 0, bottom = n4 - 1, left = 0, right = n4 - 1;
