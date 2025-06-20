@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE_EXTENDED
 #include <curses.h>
 #include <dirent.h>
 #include <signal.h>
@@ -8,6 +9,7 @@
 #include <sys/stat.h>
 #include <termios.h>
 #include <time.h>
+#include <unistd.h>
 
 #define MAX_FILES 1000
 #define MAX_PATH 1024
@@ -39,9 +41,24 @@ void load_directory(const char *path) {
   }
 
   file_count = 0;
+
+  strcpy(files[file_count].name, ".");
+  files[file_count].type = 'd';
+  files[file_count].size = 0;
+  files[file_count].mtime = time(NULL);
+  file_count++;
+
+  strcpy(files[file_count].name, "..");
+  files[file_count].type = 'd';
+  files[file_count].size = 0;
+  files[file_count].mtime = time(NULL);
+  file_count++;
+
   struct dirent *entry;
   while ((entry = readdir(dir)) && file_count < MAX_FILES) {
-    if (entry->d_name[0] == '.') continue;
+    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+      continue;
+    }
 
     strncpy(files[file_count].name, entry->d_name, 255);
     files[file_count].name[255] = '\0';
@@ -88,7 +105,7 @@ void draw_interface() {
   }
 
   mvprintw(size.ws_row - 1, 0,
-           "q:Exit KEY_UP KEY_DOWN KEY_PPAGE KEY_NPAGE Backspace");
+           "KEY_Q KEY_UP KEY_DOWN KEY_PPAGE KEY_NPAGE KEY_BACKSPACE");
   refresh();
 }
 
@@ -130,11 +147,23 @@ int main(int argc, char **argv) {
       case '\n':
         if (files[selected_file].type == 'd') {
           char new_path[MAX_PATH];
-          snprintf(new_path, MAX_PATH, "%s/%s", current_path,
-                   files[selected_file].name);
-          strncpy(current_path, new_path, MAX_PATH - 1);
-          load_directory(current_path);
-          selected_file = 0;
+          size_t current_len = strlen(current_path);
+          size_t name_len = strlen(files[selected_file].name);
+
+          if (current_len + name_len + 2 > MAX_PATH) {
+            mvprintw(0, 0, "Path too long!");
+            refresh();
+            getch();
+          } else {
+            strcpy(new_path, current_path);
+            strcat(new_path, "/");
+            strcat(new_path, files[selected_file].name);
+
+            strncpy(current_path, new_path, MAX_PATH - 1);
+            current_path[MAX_PATH - 1] = '\0';
+            load_directory(current_path);
+            selected_file = 0;
+          }
         }
         break;
       case KEY_BACKSPACE:
