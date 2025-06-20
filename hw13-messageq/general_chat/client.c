@@ -26,7 +26,10 @@ void* receiver(void* arg) {
   struct chatmsg msg;
   while (1) {
     if (msgrcv(q_out, &msg, sizeof(msg) - sizeof(long), pid, 0) > 0) {
-      printf("%s: %s\n", msg.name, msg.text);
+      if (msg.event == 0)
+        printf("%s: %s\n", msg.name, msg.text);
+      else
+        printf("* %s *\n", msg.text);
     }
   }
   return NULL;
@@ -38,18 +41,14 @@ int main() {
   q_in = msgget(key_in, 0666);
   q_out = msgget(key_out, 0666);
   pid = getpid();
-
   printf("input name: ");
   fgets(name, MAX_NAME, stdin);
   name[strcspn(name, "\n")] = 0;
-
   struct chatmsg msg = {1, pid, "", "", 1};
   strncpy(msg.name, name, MAX_NAME);
   msgsnd(q_in, &msg, sizeof(msg) - sizeof(long), 0);
-
   pthread_t recv_thread;
   pthread_create(&recv_thread, NULL, receiver, NULL);
-
   while (1) {
     char text[MAX_TEXT];
     fgets(text, MAX_TEXT, stdin);
