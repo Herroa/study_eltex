@@ -3,49 +3,68 @@
 #include <string.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-#define MAX_TEXT 256
+#define MAX_CLIENTS 32
+#define MAX_NAME 32
+#define MAX_TEXT 192
 
-struct msgbuf {
+struct chatmsg {
   long mtype;
-  char mtext[MAX_TEXT];
+  pid_t pid;
+  char name[MAX_NAME];
+  char text[MAX_TEXT];
+  int event;
+};
+
+struct client {
+  pid_t pid;
+  char name[MAX_NAME];
 };
 
 int main() {
-  key_t key = ftok("server.c", 65);
-  int msgid = msgget(key, 0666 | IPC_CREAT);
+  key_t key_in = ftok("server.c", 1);
+  key_t key_out = ftok("server.c", 2);
+  int q_in = msgget(key_in, 0666 | IPC_CREAT);
+  int q_out = msgget(key_out, 0666 | IPC_CREAT);
 
-  if (msgid == -1) {
-    perror("msgget");
-    exit(1);
-  }
-
-  struct msgbuf message;
+  struct chatmsg msg;
+  struct client clients[MAX_CLIENTS];
+  int nclients = 0;
 
   printf("server up\n");
 
   while (1) {
-    if (msgrcv(msgid, &message, sizeof(message.mtext), 0, 0) == -1) {
-      perror("msgrcv");
-      exit(1);
-    }
-    char *colon = strstr(message.mtext, ": ");
-    if (colon) {
-      *colon = '\0';
-      char *name = message.mtext;
-      char *text = colon + 2;
-      printf("%s >> %s\n", name, text);
-    } else {
-      printf("%s\n", message.mtext);
+    if (msgrcv(q_in, &msg, sizeof(msg) - sizeof(long), 1, 0) == -1) continue;
+
+    if (msg.event == 1) {
+      if (nclients < MAX_CLIENTS) {
+        clients[nclients].pid = msg.pid;
+        strncpy(clients[nclients].name, msg.name, MAX_NAME);
+        nclients++;
+      }
+      snprintf(msg.text, MAX_TEXT, "%s joined chat", msg.name);
+    } else if (msg.event == 2) {
+      int i;
+      for (i = 0; i < nclients; ++i) {
+        if (clients[i].pid == msg.pid) {
+          snprintf(msg.text, MAX_TEXT, "%s left chat", clients[i].name);
+          for (int j = i; j < nclients - 1; ++j) clients[j] = clients[j + 1];
+          nclients--;
+          break;
+        }
+      }
     }
 
-    if (strncmp(message.mtext, "exit", 4) == 0) {
-      printf("server down\n");
-      break;
+    for (int i = 0; i < nclients; ++i) {
+      msg.mtype = clients[i].pid;
+      msgsnd(q_out, &msg, sizeof(msg) - sizeof(long), 0);
     }
   }
 
-  msgctl(msgid, IPC_RMID, NULL);
-
+  msgctl(q_in, IPC_RMID, NULL);
+  msgctl(q_out, IPC_RMID, NULL);
+  printf("server down\n");
   return 0;
 }
