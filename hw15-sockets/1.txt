@@ -1,0 +1,4 @@
+aflocl
+  dgram STREAM
+afinet
+  dgram STREAM
